@@ -50,4 +50,15 @@ Desktop.ini
 .eslintcache
 
 # Others
-*.tgz
+*.tg
+
+
+# Backend
+server/.env
+server/logs/
+server/tmp/
+
+# Frontend (React)
+client/.env.local
+client/build/
+client/.DS_Store
