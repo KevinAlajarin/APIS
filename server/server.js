@@ -4,6 +4,7 @@ const cors = require('cors');
 const { pool, getConnection} = require('./src/config/db'); 
 const { swaggerUi, specs } = require('./src/utils/swagger');
 
+const servicesRoutes = require('./src/routes/servicesRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const authenticate = require('./src/middlewares/authMiddleware');
 
@@ -13,12 +14,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+app.use('/api/services', servicesRoutes);
 
-
-// Conexión a DB (versión corregida)
 (async () => {
   try {
-    await getConnection(); // Ahora esta función existe
+    await getConnection(); 
     console.log('✅ Conectado a SQL Server');
   } catch (err) {
     console.error('❌ Error de conexión:', err);

@@ -62,3 +62,6 @@ server/tmp/
 client/.env.local
 client/build/
 client/.DS_Store
+
+# Credenciales de google
+server/src/config/google-credentials.json
