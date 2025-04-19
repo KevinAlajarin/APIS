@@ -1,4 +1,3 @@
-// server/src/models/Service.js
 const { getConnection, sql } = require('../config/db');
 
 class Service {
@@ -64,11 +63,11 @@ class Service {
         updateFields.push(`${key} = @${key}`);
       }
 
+      // Eliminada la condición AND eliminado = 0
       const query = `
         UPDATE servicios
         SET ${updateFields.join(', ')}
         WHERE id_servicio = @id_servicio
-        AND eliminado = 0
       `;
 
       await request.query(query);
@@ -85,6 +84,7 @@ class Service {
       const request = pool.request();
       request.input('id_servicio', sql.Int, id_servicio);
 
+      // Eliminada la condición AND s.eliminado = 0
       const result = await request.query(`
         SELECT 
           s.*,
@@ -96,7 +96,6 @@ class Service {
         JOIN zonas z ON s.id_zona = z.id_zona
         JOIN usuarios u ON s.id_entrenador = u.id_usuario
         WHERE s.id_servicio = @id_servicio
-        AND s.eliminado = 0
       `);
 
       return result.recordset[0];
@@ -112,15 +111,21 @@ class Service {
       const request = pool.request();
       request.input('id_servicio', sql.Int, id_servicio);
 
+      // Cambiado a DELETE físico en lugar de UPDATE
       await request.query(`
-        UPDATE servicios
-        SET eliminado = 1, fecha_eliminacion = GETDATE()
+        DELETE FROM servicios
         WHERE id_servicio = @id_servicio
       `);
 
       return true;
     } catch (error) {
       console.error('Error en Service.delete:', error.message);
+      
+      // Manejo especial para error de FK (si hay contrataciones relacionadas)
+      if (error.number === 547) {
+        throw new Error('No se puede eliminar el servicio porque tiene contrataciones asociadas');
+      }
+      
       throw error;
     }
   }
@@ -129,7 +134,7 @@ class Service {
     const pool = await getConnection();
     try {
       const request = pool.request();
-      let whereClauses = ['s.activo = 1 AND s.eliminado = 0'];
+      let whereClauses = ['s.activo = 1']; // Eliminado AND s.eliminado = 0
       let joinClauses = [];
 
       // Construcción dinámica de la query
@@ -184,6 +189,7 @@ function determineSqlType(key) {
     duracion: sql.Int,
     fecha_hora_inicio: sql.DateTime2,
     fecha_hora_fin: sql.DateTime2,
+    activo: sql.Bit,
     // Default a VarChar para otros campos
   };
   return typeMap[key] || sql.VarChar(sql.MAX);

@@ -7,7 +7,7 @@ const options = {
     info: {
       title: 'Marketplace de Entrenadores - API',
       version: '1.0.0',
-      description: 'Documentación de la API para el TP Obligatorio',
+      description: 'Documentación de la API',
     },
     servers: [
       {

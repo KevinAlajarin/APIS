@@ -15,7 +15,7 @@ INSERT INTO roles (nombre, descripcion) VALUES
 ('entrenador', 'Profesional que ofrece servicios');
 GO
 
--- Tabla de usuarios
+-- Tabla de usuarios (mantenemos eliminado para usuarios)
 CREATE TABLE usuarios (
     id_usuario INT IDENTITY(1,1) PRIMARY KEY,
     id_rol INT NOT NULL FOREIGN KEY REFERENCES roles(id_rol),
@@ -40,7 +40,7 @@ WHERE eliminado = 0;
 CREATE INDEX idx_usuarios_rol ON usuarios(id_rol);
 GO
 
--- Tabla de zonas
+-- Tabla de zonas (mantenemos eliminado para zonas)
 CREATE TABLE zonas (
     id_zona INT IDENTITY(1,1) PRIMARY KEY,
     nombre VARCHAR(50) UNIQUE NOT NULL,
@@ -56,7 +56,7 @@ INSERT INTO zonas (nombre) VALUES
 ('La Boca'),('Puerto Madero'),('Flores'),('Villa Crespo'),('Nuñez');
 GO
 
--- Tabla de categorías
+-- Tabla de categorías (mantenemos eliminado para categorías)
 CREATE TABLE categorias (
     id_categoria INT IDENTITY(1,1) PRIMARY KEY,
     nombre VARCHAR(50) UNIQUE NOT NULL,
@@ -71,7 +71,7 @@ INSERT INTO categorias (nombre) VALUES
 ('Yoga'),('Pilates'),('Nutricion'),('Gimnasio'),('Running');
 GO
 
--- Tabla de servicios
+-- Tabla de servicios (MODIFICADA para hard delete)
 CREATE TABLE servicios (
     id_servicio INT IDENTITY(1,1) PRIMARY KEY,
     id_entrenador INT NOT NULL FOREIGN KEY REFERENCES usuarios(id_usuario),
@@ -88,27 +88,26 @@ CREATE TABLE servicios (
     visualizaciones INT DEFAULT 0,
     id_evento_calendar VARCHAR(255) NULL,
     fecha_creacion DATETIME2(0) DEFAULT SYSDATETIME(),
-    fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME(),
-    fecha_eliminacion DATETIME2(0) NULL,
-    eliminado BIT DEFAULT 0,
-    CONSTRAINT chk_servicio_activo_no_eliminado CHECK (activo = 0 OR eliminado = 0)
+    fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME()
+    -- Eliminados los campos: fecha_eliminacion y eliminado
+    -- Eliminada la constraint: chk_servicio_activo_no_eliminado
 );
 GO
 
--- Índices para servicios
+-- Índices para servicios (MODIFICADOS)
 CREATE NONCLUSTERED INDEX idx_servicios_busqueda 
 ON servicios (id_categoria, id_zona, precio)
 INCLUDE (modalidad, idioma, duracion, fecha_hora_inicio, fecha_hora_fin)
-WHERE activo = 1 AND eliminado = 0;
+WHERE activo = 1;  -- Solo filtramos por activo ahora
 
 CREATE UNIQUE INDEX idx_servicios_entrenador_horario 
 ON servicios(id_entrenador, fecha_hora_inicio, fecha_hora_fin)
-WHERE activo = 1 AND eliminado = 0;
+WHERE activo = 1;  -- Solo filtramos por activo ahora
 
 CREATE INDEX idx_servicios_entrenador ON servicios(id_entrenador);
 GO
 
--- Tabla de contrataciones
+-- Tabla de contrataciones (MODIFICADA para hard delete)
 CREATE TABLE contrataciones (
     id_contratacion INT IDENTITY(1,1) PRIMARY KEY,
     id_cliente INT NOT NULL FOREIGN KEY REFERENCES usuarios(id_usuario),
@@ -118,9 +117,8 @@ CREATE TABLE contrataciones (
     fecha_aceptacion DATETIME2(0) NULL,
     fecha_completado DATETIME2(0) NULL,
     fecha_cancelado DATETIME2(0) NULL,
-    fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME(),
-    fecha_eliminacion DATETIME2(0) NULL,
-    eliminado BIT DEFAULT 0
+    fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME()
+    -- Eliminados los campos: fecha_eliminacion y eliminado
 );
 GO
 
@@ -130,7 +128,7 @@ CREATE INDEX idx_contrataciones_servicio ON contrataciones(id_servicio);
 CREATE INDEX idx_contrataciones_estado ON contrataciones(estado);
 GO
 
--- Trigger para actualizar fechas de contratación
+-- Trigger para actualizar fechas de contratación (MODIFICADO)
 CREATE TRIGGER tr_actualizar_fechas_contratacion
 ON contrataciones
 AFTER UPDATE
@@ -144,20 +142,19 @@ BEGIN
         SET fecha_aceptacion = CASE 
                                 WHEN i.estado = 'aceptado' AND d.estado <> 'aceptado' THEN SYSDATETIME()
                                 ELSE c.fecha_aceptacion
-                            END,
+                              END,
             fecha_completado = CASE 
                                 WHEN i.estado = 'completado' AND d.estado <> 'completado' THEN SYSDATETIME()
                                 ELSE c.fecha_completado
-                            END,
+                              END,
             fecha_cancelado = CASE 
                                 WHEN i.estado = 'cancelado' AND d.estado <> 'cancelado' THEN SYSDATETIME()
                                 ELSE c.fecha_cancelado
-                            END,
+                              END,
             fecha_ultima_actualizacion = SYSDATETIME()
         FROM contrataciones c
         INNER JOIN inserted i ON c.id_contratacion = i.id_contratacion
-        INNER JOIN deleted d ON c.id_contratacion = d.id_contratacion
-        WHERE c.eliminado = 0;
+        INNER JOIN deleted d ON c.id_contratacion = d.id_contratacion;
     END
 END;
 GO
@@ -183,7 +180,7 @@ BEGIN
 END;
 GO
 
--- Tabla de reseñas
+-- Tabla de reseñas (MODIFICADA para hard delete)
 CREATE TABLE resenias (
     id_resenia INT IDENTITY(1,1) PRIMARY KEY,
     id_contratacion INT UNIQUE NOT NULL FOREIGN KEY REFERENCES contrataciones(id_contratacion),
@@ -192,9 +189,8 @@ CREATE TABLE resenias (
     estado VARCHAR(20) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('aprobado', 'pendiente', 'rechazado')),
     fecha_creacion DATETIME2(0) DEFAULT SYSDATETIME(),
     fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME(),
-    fecha_aprobacion DATETIME2(0) NULL,
-    fecha_eliminacion DATETIME2(0) NULL,
-    eliminado BIT DEFAULT 0
+    fecha_aprobacion DATETIME2(0) NULL
+    -- Eliminados los campos: fecha_eliminacion y eliminado
 );
 GO
 
@@ -202,15 +198,15 @@ GO
 CREATE NONCLUSTERED INDEX idx_resenias_id_contratacion
 ON resenias (id_contratacion);
 
--- Tabla de respuestas a reseñas
+-- Tabla de respuestas a reseñas (MODIFICADA para hard delete)
 CREATE TABLE respuestas_resenias (
     id_respuesta INT IDENTITY(1,1) PRIMARY KEY,
     id_resenia INT NOT NULL FOREIGN KEY REFERENCES resenias(id_resenia),
     id_entrenador INT NOT NULL FOREIGN KEY REFERENCES usuarios(id_usuario),
     texto TEXT NOT NULL,
     fecha_creacion DATETIME2(0) DEFAULT SYSDATETIME(),
-    fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME(),
-    eliminado BIT DEFAULT 0
+    fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME()
+    -- Eliminado el campo: eliminado
 );
 GO
 
@@ -248,7 +244,7 @@ CREATE TABLE pagos (
 );
 GO
 
--- Procedimiento para registro de usuarios
+-- Procedimiento para registro de usuarios (MODIFICADO)
 CREATE PROCEDURE sp_registrar_usuario
     @id_rol INT,
     @nombre VARCHAR(100),
@@ -295,7 +291,7 @@ BEGIN
 END;
 GO
 
--- Vista optimizada de servicios
+-- Vista optimizada de servicios (MODIFICADA)
 CREATE VIEW vw_servicios_activos_enriquecidos AS
 SELECT 
     s.id_servicio,
@@ -327,8 +323,6 @@ OUTER APPLY (
     JOIN contrataciones ct ON r.id_contratacion = ct.id_contratacion
     WHERE ct.id_servicio = s.id_servicio
     AND r.estado = 'aprobado'
-    AND r.eliminado = 0
 ) e
-WHERE s.activo = 1 
-AND s.eliminado = 0;
+WHERE s.activo = 1;
 GO

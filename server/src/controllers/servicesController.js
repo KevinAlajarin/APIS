@@ -2,7 +2,6 @@ const Service = require('../models/Service');
 const { validationResult } = require('express-validator');
 
 const createService = async (req, res) => {
-  // Validación de campos (usando express-validator)
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -10,7 +9,7 @@ const createService = async (req, res) => {
 
   try {
     const serviceData = {
-      id_entrenador: req.user.id_usuario, // Asume que el JWT incluye el ID
+      id_entrenador: req.user.id_usuario,
       ...req.body
     };
 
@@ -60,16 +59,21 @@ const deleteService = async (req, res) => {
     }
 
     await Service.delete(req.params.id);
-    res.json({ success: true });
+    res.status(204).end(); // 204 No Content para DELETE exitoso
   } catch (error) {
     console.error('Error en deleteService:', error.message);
+    
+    if (error.message.includes('contrataciones asociadas')) {
+      return res.status(409).json({ error: error.message }); // 409 Conflict
+    }
+    
     res.status(500).json({ error: 'Error al eliminar servicio' });
   }
 };
 
 const searchServices = async (req, res) => {
   try {
-    const services = await Service.search(req.query); // Filtros vienen en query params
+    const services = await Service.search(req.query);
     res.json(services);
   } catch (error) {
     console.error('Error en searchServices:', error.message);
