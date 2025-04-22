@@ -15,7 +15,7 @@ INSERT INTO roles (nombre, descripcion) VALUES
 ('entrenador', 'Profesional que ofrece servicios');
 GO
 
--- Tabla de usuarios (mantenemos eliminado para usuarios)
+-- Tabla de usuarios 
 CREATE TABLE usuarios (
     id_usuario INT IDENTITY(1,1) PRIMARY KEY,
     id_rol INT NOT NULL FOREIGN KEY REFERENCES roles(id_rol),
@@ -24,6 +24,8 @@ CREATE TABLE usuarios (
     email VARCHAR(255) NOT NULL,
     email_normalizado AS (LOWER(TRIM(email))) PERSISTED,
     contraseña_hash VARCHAR(255) NOT NULL,
+    reset_token VARCHAR(255) NULL;
+    reset_token_expira DATETIME2(0) NULL;
     fecha_nacimiento DATE NOT NULL,
     fecha_registro DATETIME2(0) DEFAULT SYSDATETIME(),
     fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME(),

@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { register, login } = require('../controllers/authController');
+const { 
+  register, 
+  login, 
+  solicitarRecuperacionContrasena, 
+  resetearContrasena 
+} = require('../controllers/authController');
+
 const { check } = require('express-validator');
 
 /**
@@ -153,5 +159,132 @@ router.post('/registro', registerValidations, register);
  *         description: Error interno del servidor
  */
 router.post('/login', login);
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     PasswordResetRequest:
+ *       type: object
+ *       required:
+ *         - email
+ *       properties:
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: "usuario@example.com"
+ * 
+ *     PasswordReset:
+ *       type: object
+ *       required:
+ *         - token
+ *         - nuevaContrasena
+ *       properties:
+ *         token:
+ *           type: string
+ *           example: "a1b2c3d4e5f6..."
+ *         nuevaContrasena:
+ *           type: string
+ *           description: Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 carácter especial
+ *           example: "NuevaPass123!"
+ */
+
+// Validaciones para recuperación de contraseña
+const passwordResetValidations = [
+  check('email').isEmail().withMessage('Email inválido').normalizeEmail()
+];
+
+const newPasswordValidations = [
+  check('token').notEmpty().withMessage('Token requerido'),
+  check('nuevaContrasena')
+    .isLength({ min: 8 }).withMessage('La contraseña debe tener al menos 8 caracteres')
+    .matches(/[A-Z]/).withMessage('La contraseña debe contener al menos una mayúscula')
+    .matches(/[0-9]/).withMessage('La contraseña debe contener al menos un número')
+    .matches(/[!@#$%^&*]/).withMessage('La contraseña debe contener al menos un carácter especial')
+];
+
+/**
+ * @swagger
+ * /api/auth/recuperar-contrasena:
+ *   post:
+ *     summary: Solicitar recuperación de contraseña
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PasswordResetRequest'
+ *     responses:
+ *       200:
+ *         description: Si el email existe, se enviarán instrucciones
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Correo de recuperación enviado"
+ *       400:
+ *         description: Error de validación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       msg:
+ *                         type: string
+ *                       param:
+ *                         type: string
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post('/recuperar-contrasena', passwordResetValidations, solicitarRecuperacionContrasena);
+
+/**
+ * @swagger
+ * /api/auth/resetear-contrasena:
+ *   post:
+ *     summary: Restablecer contraseña con token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PasswordReset'
+ *     responses:
+ *       200:
+ *         description: Contraseña actualizada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Contraseña actualizada exitosamente"
+ *       400:
+ *         description: Token inválido o error de validación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/ErrorValidation'
+ *                 - type: object
+ *                   properties:
+ *                     error:
+ *                       type: string
+ *                       example: "Token inválido o expirado"
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post('/resetear-contrasena', newPasswordValidations, resetearContrasena);
 
 module.exports = router;

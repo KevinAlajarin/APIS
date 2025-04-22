@@ -3,6 +3,10 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
+const crypto = require('crypto');
+const { getConnection, sql } = require('../config/db'); // Importación corregida
+const { sendPasswordResetEmail } = require('../utils/emailService');
+
 
 const register = async (req, res) => {
   try {
@@ -82,4 +86,96 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+const solicitarRecuperacionContrasena = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findByEmail(email);
+
+    if (!user) {
+      return res.status(200).json({ message: 'Si el email existe, se enviarán instrucciones' });
+    }
+
+    // Generar token y expiración
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpira = new Date(Date.now() + 3600000); // 1 hora
+
+    // Obtener conexión
+    const pool = await getConnection();
+    const request = pool.request(); // Usar la conexión obtenida
+    
+    // Configurar parámetros
+    request.input('email', sql.VarChar(255), email);
+    request.input('resetToken', sql.VarChar(255), resetToken);
+    request.input('resetTokenExpira', sql.DateTime2, resetTokenExpira);
+
+    await request.query(`
+      UPDATE usuarios
+      SET 
+        reset_token = @resetToken,
+        reset_token_expira = @resetTokenExpira
+      WHERE email_normalizado = LOWER(TRIM(@email))
+    `);
+
+    // Enviar email
+    await sendPasswordResetEmail(email, resetToken);
+
+    res.json({ message: 'Correo de recuperación enviado' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al procesar la solicitud' });
+  }
+};
+
+const resetearContrasena = async (req, res) => {
+  try {
+    const { token, nuevaContrasena } = req.body;
+
+    // Validar contraseña
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(nuevaContrasena)) {
+      return res.status(400).json({ error: 'La contraseña no cumple los requisitos' });
+    }
+
+    // Obtener conexión
+    const pool = await getConnection();
+    const request = pool.request(); // Usar la conexión obtenida
+    
+    // Buscar usuario por token
+    request.input('token', sql.VarChar(255), token);
+
+    const result = await request.query(`
+      SELECT * FROM usuarios
+      WHERE reset_token = @token
+      AND reset_token_expira > GETDATE()
+    `);
+
+    const user = result.recordset[0];
+
+    if (!user) {
+      return res.status(400).json({ error: 'Token inválido o expirado' });
+    }
+
+    // Actualizar contraseña y limpiar token
+    const hashedPassword = await bcrypt.hash(nuevaContrasena, 10);
+    
+    const updateRequest = pool.request(); // Usar la misma conexión
+    updateRequest.input('id', sql.Int, user.id_usuario);
+    updateRequest.input('password', sql.VarChar(255), hashedPassword);
+
+    await updateRequest.query(`
+      UPDATE usuarios
+      SET 
+        contraseña_hash = @password,
+        reset_token = NULL,
+        reset_token_expira = NULL
+      WHERE id_usuario = @id
+    `);
+
+    res.json({ message: 'Contraseña actualizada exitosamente' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al restablecer contraseña' });
+  }
+};
+
+module.exports = { register, login, solicitarRecuperacionContrasena, resetearContrasena};

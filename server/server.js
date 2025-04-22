@@ -7,6 +7,7 @@ const { swaggerUi, specs } = require('./src/utils/swagger');
 const servicesRoutes = require('./src/routes/servicesRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const authenticate = require('./src/middlewares/authMiddleware');
+const usersRoutes = require('./src/routes/userRoutes');
 
 const app = express();
 
@@ -15,7 +16,10 @@ app.use(cors());
 app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 app.use('/api/services', servicesRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
 
+// Conexion a la base de datos
 (async () => {
   try {
     await getConnection(); 
@@ -29,9 +33,6 @@ app.use('/api/services', servicesRoutes);
 app.get('/', (req, res) => {
   res.send('🚀 Backend funcionando');
 });
-
-// Asegúrate de que authRoutes esté correctamente importado
-app.use('/api/auth', authRoutes);
 
 // Ruta protegida de ejemplo
 app.get('/api/protected', authenticate, (req, res) => {

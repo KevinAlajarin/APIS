@@ -46,7 +46,7 @@ async function closePool() {
 module.exports = {
   sql,
   getConnection,
-  closePool: async () => {
+  pool: async () => {
     if (pool) {
       await pool.close();
       pool = null;
