@@ -73,7 +73,7 @@ INSERT INTO categorias (nombre) VALUES
 ('Yoga'),('Pilates'),('Nutricion'),('Gimnasio'),('Running');
 GO
 
--- Tabla de servicios (MODIFICADA para hard delete)
+-- Tabla de servicios 
 CREATE TABLE servicios (
     id_servicio INT IDENTITY(1,1) PRIMARY KEY,
     id_entrenador INT NOT NULL FOREIGN KEY REFERENCES usuarios(id_usuario),
@@ -91,25 +91,23 @@ CREATE TABLE servicios (
     id_evento_calendar VARCHAR(255) NULL,
     fecha_creacion DATETIME2(0) DEFAULT SYSDATETIME(),
     fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME()
-    -- Eliminados los campos: fecha_eliminacion y eliminado
-    -- Eliminada la constraint: chk_servicio_activo_no_eliminado
 );
 GO
 
--- Índices para servicios (MODIFICADOS)
+-- Índices para servicios 
 CREATE NONCLUSTERED INDEX idx_servicios_busqueda 
 ON servicios (id_categoria, id_zona, precio)
 INCLUDE (modalidad, idioma, duracion, fecha_hora_inicio, fecha_hora_fin)
-WHERE activo = 1;  -- Solo filtramos por activo ahora
+WHERE activo = 1;  -- Solo filtramos por activo 
 
 CREATE UNIQUE INDEX idx_servicios_entrenador_horario 
 ON servicios(id_entrenador, fecha_hora_inicio, fecha_hora_fin)
-WHERE activo = 1;  -- Solo filtramos por activo ahora
+WHERE activo = 1;  -- Solo filtramos por activo 
 
 CREATE INDEX idx_servicios_entrenador ON servicios(id_entrenador);
 GO
 
--- Tabla de contrataciones (MODIFICADA para hard delete)
+-- Tabla de contrataciones 
 CREATE TABLE contrataciones (
     id_contratacion INT IDENTITY(1,1) PRIMARY KEY,
     id_cliente INT NOT NULL FOREIGN KEY REFERENCES usuarios(id_usuario),
@@ -120,7 +118,6 @@ CREATE TABLE contrataciones (
     fecha_completado DATETIME2(0) NULL,
     fecha_cancelado DATETIME2(0) NULL,
     fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME()
-    -- Eliminados los campos: fecha_eliminacion y eliminado
 );
 GO
 
@@ -130,7 +127,7 @@ CREATE INDEX idx_contrataciones_servicio ON contrataciones(id_servicio);
 CREATE INDEX idx_contrataciones_estado ON contrataciones(estado);
 GO
 
--- Trigger para actualizar fechas de contratación (MODIFICADO)
+-- Trigger para actualizar fechas de contratación 
 CREATE TRIGGER tr_actualizar_fechas_contratacion
 ON contrataciones
 AFTER UPDATE
@@ -182,7 +179,7 @@ BEGIN
 END;
 GO
 
--- Tabla de reseñas (MODIFICADA para hard delete)
+-- Tabla de reseñas 
 CREATE TABLE resenias (
     id_resenia INT IDENTITY(1,1) PRIMARY KEY,
     id_contratacion INT UNIQUE NOT NULL FOREIGN KEY REFERENCES contrataciones(id_contratacion),
@@ -192,7 +189,6 @@ CREATE TABLE resenias (
     fecha_creacion DATETIME2(0) DEFAULT SYSDATETIME(),
     fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME(),
     fecha_aprobacion DATETIME2(0) NULL
-    -- Eliminados los campos: fecha_eliminacion y eliminado
 );
 GO
 

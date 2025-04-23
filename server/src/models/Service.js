@@ -134,7 +134,14 @@ class Service {
     const pool = await getConnection();
     try {
       const request = pool.request();
-      let whereClauses = ['s.activo = 1']; // Eliminado AND s.eliminado = 0
+      let whereClauses = [
+        's.activo = 1',
+        `NOT EXISTS (
+            SELECT 1 FROM contrataciones c
+            WHERE c.id_servicio = s.id_servicio
+            AND c.estado IN ('pendiente','aceptado')
+            )`
+      ]; 
       let joinClauses = [];
 
       // Construcción dinámica de la query
@@ -177,6 +184,23 @@ class Service {
       return result.recordset;
     } catch (error) {
       console.error('Error en Service.search:', error.message);
+      throw error;
+    }
+  }
+
+  static async updateServiceStatus(id_servicio, activo) {
+    const pool = await getConnection();
+    try {
+      await pool.request()
+        .input('id_servicio', sql.Int, id_servicio)
+        .input('activo', sql.Bit, activo)
+        .query(`
+          UPDATE servicios
+          SET activo = @activo
+          WHERE id_servicio = @id_servicio
+        `);
+    } catch (error) {
+      console.error('Error al actualizar estado del servicio:', error.message);
       throw error;
     }
   }

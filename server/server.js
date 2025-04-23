@@ -8,6 +8,7 @@ const servicesRoutes = require('./src/routes/servicesRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const authenticate = require('./src/middlewares/authMiddleware');
 const usersRoutes = require('./src/routes/userRoutes');
+const contratacionesRoutes = require('./src/routes/contratacionesRoutes');
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 app.use('/api/services', servicesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/contrataciones', contratacionesRoutes);
 
 // Conexion a la base de datos
 (async () => {
