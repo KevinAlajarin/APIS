@@ -9,6 +9,9 @@ const authRoutes = require('./src/routes/authRoutes');
 const authenticate = require('./src/middlewares/authMiddleware');
 const usersRoutes = require('./src/routes/userRoutes');
 const contratacionesRoutes = require('./src/routes/contratacionesRoutes');
+const pagosRoutes = require('./src/routes/pagosRoutes');
+const reseniasRoutes = require('./src/routes/reseniasRoutes');
+
 
 const app = express();
 
@@ -20,6 +23,13 @@ app.use('/api/services', servicesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/contrataciones', contratacionesRoutes);
+app.use('/api/pagos', pagosRoutes);
+app.use('/api/resenias', reseniasRoutes);
+
+
+// Asegurar que el webhook usa body raw
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Conexion a la base de datos
 (async () => {

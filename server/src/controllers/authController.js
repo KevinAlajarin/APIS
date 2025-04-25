@@ -39,9 +39,9 @@ const register = async (req, res) => {
 
     const token = jwt.sign(
       { 
-        id_usuario: user.id_usuario,
-        id_rol: user.id_rol,
-        email: user.email 
+        id_usuario: id_usuario,
+        id_rol: id_rol,
+        email: email 
       },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }

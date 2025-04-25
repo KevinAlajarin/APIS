@@ -8,6 +8,39 @@ const checkRole = require('../middlewares/roleMiddleware');
 
 /**
  * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         id_usuario:
+ *           type: integer
+ *           example: 1
+ *         id_rol:
+ *           type: integer
+ *           example: 2
+ *         nombre:
+ *           type: string
+ *           example: "Juan"
+ *         apellido:
+ *           type: string
+ *           example: "Pérez"
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: "juan@example.com"
+ *         fecha_nacimiento:
+ *           type: string
+ *           format: date
+ *           example: "1990-01-01"
+ *         fecha_registro:
+ *           type: string
+ *           format: date-time
+ *           example: "2023-08-15T10:30:00Z"
+ */
+
+/**
+ * @swagger
  * tags:
  *   - name: Users
  *     description: Gestión de usuarios

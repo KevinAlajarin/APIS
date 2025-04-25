@@ -68,9 +68,11 @@ static async create(id_cliente, id_servicio) {
           SELECT 
             c.id_contratacion,
             c.estado,
+            c.estado_pago, 
             c.fecha_solicitud,
             c.fecha_aceptacion,
             c.fecha_completado,
+            c.fecha_pago,    
             s.id_servicio,
             s.descripcion AS servicio_descripcion,
             s.precio,
@@ -100,9 +102,13 @@ static async create(id_cliente, id_servicio) {
         .query(`
           SELECT 
             c.*,
-            s.id_entrenador  -- <- Agregamos esta columna
+            s.id_entrenador,  
+            s.descripcion AS servicio_descripcion,
+            s.precio AS precio_servicio,
+            cliente.nombre + ' ' + cliente.apellido AS cliente_nombre
           FROM contrataciones c
           JOIN servicios s ON c.id_servicio = s.id_servicio
+          JOIN usuarios cliente ON c.id_cliente = cliente.id_usuario
           WHERE c.id_contratacion = @id_contratacion
         `);
   
@@ -157,6 +163,32 @@ static async create(id_cliente, id_servicio) {
       throw error;
     }
   }
+
+  static async actualizarEstadoPago(id_contratacion, estado_pago, datosPago = {}) {
+    const pool = await getConnection();
+    try {
+      const request = pool.request()
+        .input('id_contratacion', sql.Int, id_contratacion)
+        .input('estado_pago', sql.VarChar(20), estado_pago)
+        .input('id_pago_mercadopago', sql.VarChar(255), datosPago.id_pago || null) 
+        .input('fecha_pago', sql.DateTime2, datosPago.fecha || null)
+        .input('metodo_pago', sql.VarChar(50), datosPago.metodo || null);
+  
+      await request.query(`
+        UPDATE contrataciones
+        SET 
+          estado_pago = @estado_pago,
+          id_pago_stripe = @id_pago_mercadopago, // Actualizar nombre de columna si es necesario
+          fecha_pago = @fecha_pago,
+          metodo_pago = @metodo_pago
+        WHERE id_contratacion = @id_contratacion
+      `);
+    } catch (error) {
+      console.error('Error al actualizar estado de pago:', error.message);
+      throw error;
+    }
+  }
+
 }
 
 module.exports = Contratacion;

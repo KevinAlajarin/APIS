@@ -44,8 +44,8 @@ const listarContrataciones = async (req, res) => {
     try {
       const contratacion = await Contratacion.getById(req.params.id);
   
-      // Verificar permisos - Versión corregida
-      const pool = await getConnection(); // <-- Obtener la conexión
+      // Verificar permisos 
+      const pool = await getConnection(); 
       const servicioResult = await pool.request()
         .input('id_servicio', sql.Int, contratacion.id_servicio)
         .query('SELECT id_entrenador FROM servicios WHERE id_servicio = @id_servicio');

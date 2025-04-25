@@ -118,6 +118,10 @@ CREATE TABLE contrataciones (
     fecha_completado DATETIME2(0) NULL,
     fecha_cancelado DATETIME2(0) NULL,
     fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME()
+    estado_pago VARCHAR(20) NOT NULL DEFAULT 'pendiente' CHECK (estado_pago IN ('pendiente', 'exitoso', 'fallido', 'expirado')),
+    id_pago_mercadopago VARCHAR(255) NULL,
+    fecha_pago DATETIME2(0) NULL,
+    metodo_pago VARCHAR(50) NULL
 );
 GO
 
@@ -135,28 +139,32 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    IF UPDATE(estado)
-    BEGIN
-        UPDATE c
-        SET fecha_aceptacion = CASE 
-                                WHEN i.estado = 'aceptado' AND d.estado <> 'aceptado' THEN SYSDATETIME()
-                                ELSE c.fecha_aceptacion
-                              END,
-            fecha_completado = CASE 
-                                WHEN i.estado = 'completado' AND d.estado <> 'completado' THEN SYSDATETIME()
-                                ELSE c.fecha_completado
-                              END,
-            fecha_cancelado = CASE 
-                                WHEN i.estado = 'cancelado' AND d.estado <> 'cancelado' THEN SYSDATETIME()
-                                ELSE c.fecha_cancelado
-                              END,
-            fecha_ultima_actualizacion = SYSDATETIME()
-        FROM contrataciones c
-        INNER JOIN inserted i ON c.id_contratacion = i.id_contratacion
-        INNER JOIN deleted d ON c.id_contratacion = d.id_contratacion;
-    END
+    -- Actualizar fechas
+    UPDATE c
+    SET fecha_aceptacion = CASE 
+                            WHEN i.estado = 'aceptado' AND d.estado <> 'aceptado' THEN SYSDATETIME()
+                            ELSE c.fecha_aceptacion
+                            END,
+        fecha_completado = CASE 
+                            WHEN i.estado = 'completado' AND d.estado <> 'completado' THEN SYSDATETIME()
+                            ELSE c.fecha_completado
+                            END,
+        fecha_cancelado = CASE 
+                            WHEN i.estado = 'cancelado' AND d.estado <> 'cancelado' THEN SYSDATETIME()
+                            ELSE c.fecha_cancelado
+                            END,
+        fecha_ultima_actualizacion = SYSDATETIME()
+    FROM contrataciones c
+    INNER JOIN inserted i ON c.id_contratacion = i.id_contratacion
+    INNER JOIN deleted d ON c.id_contratacion = d.id_contratacion;
+
+    -- Reactivar servicio si se cancela
+    UPDATE servicios
+    SET activo = 1
+    FROM servicios s
+    INNER JOIN inserted i ON s.id_servicio = i.id_servicio
+    WHERE i.estado = 'cancelado';
 END;
-GO
 
 -- Trigger para prevenir autocontratación
 CREATE TRIGGER trg_prevenir_autocontratacion
@@ -189,6 +197,9 @@ CREATE TABLE resenias (
     fecha_creacion DATETIME2(0) DEFAULT SYSDATETIME(),
     fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME(),
     fecha_aprobacion DATETIME2(0) NULL
+    respuesta TEXT null,
+    fecha_respuesta DATETIME2(0) NULL,
+    id_entrenador_respuesta INT NULL FOREIGN KEY REFERENCES usuarios(id_usuario);
 );
 GO
 
