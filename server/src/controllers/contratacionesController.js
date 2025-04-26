@@ -88,9 +88,54 @@ const cambiarEstado = async (req, res) => {
     }
   };
 
+  const completeService = async (req, res) => {
+    try {
+      // Verificar rol de entrenador
+      if (req.user.id_rol !== 3) {
+        return res.status(403).json({ error: 'Solo entrenadores pueden completar servicios' });
+      }
+  
+      // Verificar que el entrenador es dueño del servicio
+      const valid = await pool.request()
+        .input('id_contratacion', sql.Int, req.params.id)
+        .input('id_entrenador', sql.Int, req.user.id_usuario)
+        .query(`
+          SELECT 1 
+          FROM contrataciones c
+          JOIN servicios s ON c.id_servicio = s.id_servicio
+          WHERE c.id_contratacion = @id_contratacion
+            AND s.id_entrenador = @id_entrenador
+        `);
+  
+      if (!valid.recordset[0]) {
+        return res.status(403).json({ error: 'No eres el entrenador asignado a esta contratación' });
+      }
+  
+      // Actualizar estado
+      await Contratacion.updateEstado(req.params.id, 'completado');
+      
+      // Deshabilitar chat y subida de archivos
+      await pool.request()
+        .input('id_contratacion', sql.Int, req.params.id)
+        .query(`
+          UPDATE contrataciones SET 
+            fecha_completado = GETDATE()
+          WHERE id_contratacion = @id_contratacion
+        `);
+  
+      res.json({ 
+        success: true,
+        message: 'Servicio marcado como completado'
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  };
+
 module.exports = {
   crearContratacion,
   listarContrataciones,
   obtenerContratacion,
+  completeService,
   cambiarEstado
 };

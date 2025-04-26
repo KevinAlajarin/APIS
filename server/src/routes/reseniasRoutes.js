@@ -31,8 +31,6 @@ router.use(authenticate);
 
 router.delete('/:id', eliminarResenia);
 
-
-
 router.post('/', reseniaValidations, crearResenia);
 router.post('/:id/respuestas', respuestaValidations, responderResenia);
 

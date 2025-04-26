@@ -79,7 +79,7 @@ CREATE TABLE servicios (
     id_entrenador INT NOT NULL FOREIGN KEY REFERENCES usuarios(id_usuario),
     id_categoria INT NOT NULL FOREIGN KEY REFERENCES categorias(id_categoria),
     id_zona INT NOT NULL FOREIGN KEY REFERENCES zonas(id_zona),
-    descripcion TEXT NOT NULL,
+    descripcion VARCHAR(20) NOT NULL,
     precio DECIMAL(10, 2) NOT NULL CHECK (precio > 0),
     duracion INT NOT NULL CHECK (duracion IN (15, 30, 60)),
     fecha_hora_inicio DATETIME2(0) NOT NULL,
@@ -207,18 +207,6 @@ GO
 CREATE NONCLUSTERED INDEX idx_resenias_id_contratacion
 ON resenias (id_contratacion);
 
--- Tabla de respuestas a reseñas (MODIFICADA para hard delete)
-CREATE TABLE respuestas_resenias (
-    id_respuesta INT IDENTITY(1,1) PRIMARY KEY,
-    id_resenia INT NOT NULL FOREIGN KEY REFERENCES resenias(id_resenia),
-    id_entrenador INT NOT NULL FOREIGN KEY REFERENCES usuarios(id_usuario),
-    texto TEXT NOT NULL,
-    fecha_creacion DATETIME2(0) DEFAULT SYSDATETIME(),
-    fecha_ultima_actualizacion DATETIME2(0) DEFAULT SYSDATETIME()
-    -- Eliminado el campo: eliminado
-);
-GO
-
 -- Tabla de visualizaciones
 CREATE TABLE visualizaciones_servicios (
     id_visualizacion INT IDENTITY(1,1) PRIMARY KEY,
@@ -242,6 +230,47 @@ CREATE TABLE mensajes (
     fecha_hora DATETIME2(0) DEFAULT SYSDATETIME()
 );
 GO
+
+CREATE TABLE archivos_compartidos (
+    id_archivo INT IDENTITY(1,1) PRIMARY KEY,
+    id_contratacion INT NOT NULL FOREIGN KEY REFERENCES contrataciones(id_contratacion),
+    id_usuario_subio INT NOT NULL FOREIGN KEY REFERENCES usuarios(id_usuario),
+    nombre_archivo VARCHAR(255) NOT NULL,
+    ruta_archivo VARCHAR(500) NOT NULL,
+    tipo_archivo VARCHAR(100) NOT NULL,
+    fecha_subida DATETIME2(0) DEFAULT SYSDATETIME(),
+    eliminado BIT DEFAULT 0
+);
+GO
+
+CREATE INDEX idx_archivos_contratacion ON archivos_compartidos(id_contratacion);
+
+CREATE TRIGGER tr_validar_remitente_mensaje
+ON mensajes
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Verificar si hay mensajes no autorizados
+    IF EXISTS (
+        SELECT 1 
+        FROM inserted i
+        LEFT JOIN contrataciones c ON i.id_contratacion = c.id_contratacion
+        LEFT JOIN servicios s ON c.id_servicio = s.id_servicio
+        WHERE NOT (
+            i.id_remitente = c.id_cliente OR 
+            i.id_remitente = s.id_entrenador
+        )
+    )
+    BEGIN
+        ROLLBACK TRANSACTION;
+        THROW 51000, 'El remitente no está autorizado para enviar mensajes en esta contratación. Solo el cliente o el entrenador asignado pueden enviar mensajes.', 1;
+        RETURN;
+    END
+END;
+GO
+
 
 -- Tabla de pagos
 CREATE TABLE pagos (
@@ -300,7 +329,7 @@ BEGIN
 END;
 GO
 
--- Vista optimizada de servicios (MODIFICADA)
+-- Vista optimizada de servicios 
 CREATE VIEW vw_servicios_activos_enriquecidos AS
 SELECT 
     s.id_servicio,

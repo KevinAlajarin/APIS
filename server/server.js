@@ -1,8 +1,10 @@
+const path = require('path');
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { pool, getConnection} = require('./src/config/db'); 
+const { pool, getConnection } = require('./src/config/db'); 
 const { swaggerUi, specs } = require('./src/utils/swagger');
+//const fileUpload = require('express-fileupload');
 
 const servicesRoutes = require('./src/routes/servicesRoutes');
 const authRoutes = require('./src/routes/authRoutes');
@@ -11,7 +13,8 @@ const usersRoutes = require('./src/routes/userRoutes');
 const contratacionesRoutes = require('./src/routes/contratacionesRoutes');
 const pagosRoutes = require('./src/routes/pagosRoutes');
 const reseniasRoutes = require('./src/routes/reseniasRoutes');
-
+const statsRoutes = require('./src/routes/statsRoutes');
+const chatRoutes = require('./src/routes/chatRoutes');
 
 const app = express();
 
@@ -19,13 +22,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+//app.use(fileUpload()); // Mover esto antes de las rutas que lo usan
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Rutas
 app.use('/api/services', servicesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/contrataciones', contratacionesRoutes);
 app.use('/api/pagos', pagosRoutes);
 app.use('/api/resenias', reseniasRoutes);
-
+app.use('/api/stats', statsRoutes);
+app.use('/api', chatRoutes);
 
 // Asegurar que el webhook usa body raw
 app.use(express.json());
@@ -41,12 +49,11 @@ app.use(express.urlencoded({ extended: true }));
   }
 })();
 
-// Rutas
+// Rutas básicas
 app.get('/', (req, res) => {
   res.send('🚀 Backend funcionando');
 });
 
-// Ruta protegida de ejemplo
 app.get('/api/protected', authenticate, (req, res) => {
   res.json({ message: '🔐 Ruta protegida', user: req.user });
 });
