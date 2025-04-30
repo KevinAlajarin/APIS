@@ -54,6 +54,11 @@ app.get('/', (req, res) => {
   res.send('🚀 Backend funcionando');
 });
 
+app.get('/swagger.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(specs);
+});
+
 app.get('/api/protected', authenticate, (req, res) => {
   res.json({ message: '🔐 Ruta protegida', user: req.user });
 });

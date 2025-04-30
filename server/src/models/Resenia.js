@@ -133,8 +133,8 @@ class Resenia {
         `);
   
       const puedeEliminar = esAdmin || 
-                           resenia.recordset[0].id_cliente === id_usuario || 
-                           resenia.recordset[0].id_entrenador === id_usuario;
+                          resenia.recordset[0].id_cliente === id_usuario || 
+                          resenia.recordset[0].id_entrenador === id_usuario;
   
       if (!puedeEliminar) throw new Error('No autorizado');
   

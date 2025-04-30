@@ -2,7 +2,6 @@
 const { getConnection, sql } = require('../config/db');
 
 class Contratacion {
-// Versión final optimizada para tu contexto
 static async create(id_cliente, id_servicio) {
     const pool = await getConnection();
     const transaction = new sql.Transaction(pool);

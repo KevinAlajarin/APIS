@@ -4,7 +4,7 @@ const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const crypto = require('crypto');
-const { getConnection, sql } = require('../config/db'); // Importación corregida
+const { getConnection, sql } = require('../config/db'); 
 const { sendPasswordResetEmail } = require('../utils/emailService');
 
 

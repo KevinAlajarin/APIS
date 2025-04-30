@@ -2,7 +2,7 @@
 const multer = require('multer');
 const path = require('path');
 
-const storage = multer.memoryStorage(); // Usar diskStorage en producción
+const storage = multer.memoryStorage(); 
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [

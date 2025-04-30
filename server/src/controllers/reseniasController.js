@@ -67,7 +67,7 @@ const responderResenia = async (req, res) => {
 
 const getReseniasCliente = async (req, res) => {
     try {
-      const resenias = await Resenia.getByCliente(req.params.id);  // Usar params.id
+      const resenias = await Resenia.getByCliente(req.params.id);  
       res.json(resenias);
     } catch (error) {
       console.error(error);
@@ -75,7 +75,7 @@ const getReseniasCliente = async (req, res) => {
     }
   };
   
-  // Nuevo método para eliminar reseñas
+  // Método para eliminar reseñas
   const eliminarResenia = async (req, res) => {
     try {
       const esAdmin = req.user.id_rol === 1;

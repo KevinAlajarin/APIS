@@ -63,7 +63,6 @@ class Service {
         updateFields.push(`${key} = @${key}`);
       }
 
-      // Eliminada la condición AND eliminado = 0
       const query = `
         UPDATE servicios
         SET ${updateFields.join(', ')}
@@ -84,7 +83,6 @@ class Service {
       const request = pool.request();
       request.input('id_servicio', sql.Int, id_servicio);
 
-      // Eliminada la condición AND s.eliminado = 0
       const result = await request.query(`
         SELECT 
           s.*,
@@ -111,7 +109,6 @@ class Service {
       const request = pool.request();
       request.input('id_servicio', sql.Int, id_servicio);
 
-      // Cambiado a DELETE físico en lugar de UPDATE
       await request.query(`
         DELETE FROM servicios
         WHERE id_servicio = @id_servicio
@@ -214,7 +211,6 @@ function determineSqlType(key) {
     fecha_hora_inicio: sql.DateTime2,
     fecha_hora_fin: sql.DateTime2,
     activo: sql.Bit,
-    // Default a VarChar para otros campos
   };
   return typeMap[key] || sql.VarChar(sql.MAX);
 }

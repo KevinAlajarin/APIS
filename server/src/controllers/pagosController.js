@@ -61,7 +61,7 @@ class PagosController {
       const paymentId = req.query.id || req.body.data.id;
       if (!paymentId) return res.status(400).send('Faltan datos');
 
-      // Validar firma (opcional)
+      // Validar firma 
       const signature = req.headers['x-signature'];
       if (!signature) return res.status(403).send('No autorizado');
 
