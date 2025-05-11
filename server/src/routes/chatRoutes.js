@@ -241,38 +241,4 @@ router.get('/contrataciones/:id_contratacion/archivos', getFiles);
  *       404:
  *         description: Contratación no encontrada
  */
-
-// En contratacionesRoutes.js
-/**
- * @swagger
- * /api/contrataciones/{id}/completar:
- *   patch:
- *     summary: Marcar servicio como completado (solo entrenador)
- *     tags: [Contrataciones]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Servicio completado exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *       403:
- *         description: No autorizado
- *       500:
- *         description: Error al completar servicio
- */
-
 module.exports = router;
