@@ -12,8 +12,8 @@ const { check } = require('express-validator');
 /**
  * @swagger
  * tags:
- *   name: Auth
- *   description: Autenticación de usuarios
+ *   name: Authentication
+ *   description: User authentication 
  */
 
 /**
@@ -28,37 +28,71 @@ const { check } = require('express-validator');
  *         - apellido
  *         - email
  *         - contraseña
+ *         - repetir_contraseña
  *         - fecha_nacimiento
  *       properties:
  *         id_rol:
  *           type: integer
  *           enum: [1, 2, 3]
  *           description: |
- *             1 = admin, 2 = cliente, 3 = entrenador
+ *             1 = admin, 2 = client, 3 = trainer
  *           example: 2
  *         nombre:
  *           type: string
  *           minLength: 2
  *           maxLength: 100
- *           example: "Juan"
+ *           example: "John"
  *         apellido:
  *           type: string
  *           minLength: 2
  *           maxLength: 100
- *           example: "Pérez"
+ *           example: "Doe"
  *         email:
  *           type: string
  *           format: email
  *           maxLength: 255
- *           example: "juan@example.com"
+ *           example: "john@example.com"
  *         contraseña:
  *           type: string
- *           description: Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 carácter especial
+ *           description: Minimum 8 chars, 1 uppercase, 1 number and 1 special char
+ *           example: "Pass123!"
+ *         repetir_contraseña:
+ *           type: string
+ *           description: Should match contraseña field
  *           example: "Pass123!"
  *         fecha_nacimiento:
  *           type: string
  *           format: date
  *           example: "1990-01-01"
+ * 
+ *     PasswordResetRequest:
+ *       type: object
+ *       required:
+ *         - email
+ *       properties:
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: "user@example.com"
+ * 
+ *     PasswordReset:
+ *       type: object
+ *       required:
+ *         - token
+ *         - nuevaContrasena
+ *         - repetirNuevaContrasena
+ *       properties:
+ *         token:
+ *           type: string
+ *           example: "a1b2c3d4e5f6..."
+ *         nuevaContrasena:
+ *           type: string
+ *           description: Minimum 8 chars, 1 uppercase, 1 number and 1 special char
+ *           example: "NuevaPass123!"
+ *         repetirNuevaContrasena:
+ *           type: string
+ *           description: Debe coincidir con nuevaContrasena
+ *           example: "NuevaPass123!"
  */
 
 // Validaciones para registro
@@ -72,15 +106,23 @@ const registerValidations = [
     .matches(/[A-Z]/).withMessage('La contraseña debe contener al menos una mayúscula')
     .matches(/[0-9]/).withMessage('La contraseña debe contener al menos un número')
     .matches(/[!@#$%^&*]/).withMessage('La contraseña debe contener al menos un carácter especial'),
+  check('repetir_contraseña')
+    .notEmpty().withMessage('Debe confirmar la contraseña')
+    .custom((value, { req }) => {
+      if (value !== req.body.contraseña) {
+        throw new Error('Las contraseñas no coinciden');
+      }
+      return true;
+    }),
   check('fecha_nacimiento').isISO8601().withMessage('Fecha inválida (formato YYYY-MM-DD)')
 ];
 
 /**
  * @swagger
- * /api/auth/registro:
+ * /api/auth/register:
  *   post:
- *     summary: Registro de nuevo usuario
- *     tags: [Auth]
+ *     summary: Register a new user
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -89,7 +131,7 @@ const registerValidations = [
  *             $ref: '#/components/schemas/UserRegister'
  *     responses:
  *       201:
- *         description: Usuario registrado
+ *         description: User registered successfully
  *         content:
  *           application/json:
  *             schema:
@@ -98,33 +140,24 @@ const registerValidations = [
  *                 token:
  *                   type: string
  *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                 id_usuario:
+ *                   type: integer
+ *                   example: 1
  *       400:
- *         description: Error de validación
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errors:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       msg:
- *                         type: string
- *                       param:
- *                         type: string
+ *         description: Validation error
+ *       409:
+ *         description: Email already registered
  *       500:
- *         description: Error interno del servidor
+ *         description: Internal server error
  */
-router.post('/registro', registerValidations, register);
+router.post('/register', registerValidations, register);
 
 /**
  * @swagger
  * /api/auth/login:
  *   post:
- *     summary: Inicio de sesión
- *     tags: [Auth]
+ *     summary: Authenticate user
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -138,13 +171,13 @@ router.post('/registro', registerValidations, register);
  *               email:
  *                 type: string
  *                 format: email
- *                 example: "juan@example.com"
+ *                 example: "john@example.com"
  *               contraseña:
  *                 type: string
  *                 example: "Pass123!"
  *     responses:
  *       200:
- *         description: Sesión iniciada
+ *         description: Authentication successful
  *         content:
  *           application/json:
  *             schema:
@@ -153,10 +186,15 @@ router.post('/registro', registerValidations, register);
  *                 token:
  *                   type: string
  *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                 id_usuario:
+ *                   type: integer
+ *                   example: 1
+ *       400:
+ *         description: Missing credentials
  *       401:
- *         description: Credenciales inválidas
+ *         description: Invalid credentials
  *       500:
- *         description: Error interno del servidor
+ *         description: Internal server error
  */
 router.post('/login', login);
 
@@ -179,6 +217,7 @@ router.post('/login', login);
  *       required:
  *         - token
  *         - nuevaContrasena
+ *         - repetirNuevaContrasena
  *       properties:
  *         token:
  *           type: string
@@ -186,6 +225,10 @@ router.post('/login', login);
  *         nuevaContrasena:
  *           type: string
  *           description: Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 carácter especial
+ *           example: "NuevaPass123!"
+ *         repetirNuevaContrasena:
+ *           type: string
+ *           description: Should match nuevaContrasena
  *           example: "NuevaPass123!"
  */
 
@@ -200,15 +243,23 @@ const newPasswordValidations = [
     .isLength({ min: 8 }).withMessage('La contraseña debe tener al menos 8 caracteres')
     .matches(/[A-Z]/).withMessage('La contraseña debe contener al menos una mayúscula')
     .matches(/[0-9]/).withMessage('La contraseña debe contener al menos un número')
-    .matches(/[!@#$%^&*]/).withMessage('La contraseña debe contener al menos un carácter especial')
+    .matches(/[!@#$%^&*]/).withMessage('La contraseña debe contener al menos un carácter especial'),
+  check('repetirNuevaContrasena')
+    .notEmpty().withMessage('Debe confirmar la nueva contraseña')
+    .custom((value, { req }) => {
+      if (value !== req.body.nuevaContrasena) {
+        throw new Error('Las contraseñas no coinciden');
+      }
+      return true;
+    })
 ];
 
 /**
  * @swagger
- * /api/auth/recuperar-contrasena:
+ * /api/auth/password-reset:
  *   post:
- *     summary: Solicitar recuperación de contraseña
- *     tags: [Auth]
+ *     summary: Request password reset
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -217,7 +268,7 @@ const newPasswordValidations = [
  *             $ref: '#/components/schemas/PasswordResetRequest'
  *     responses:
  *       200:
- *         description: Si el email existe, se enviarán instrucciones
+ *         description: If email exists, reset instructions will be sent
  *         content:
  *           application/json:
  *             schema:
@@ -225,34 +276,21 @@ const newPasswordValidations = [
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Correo de recuperación enviado"
+ *                   example: "Password reset email sent"
  *       400:
- *         description: Error de validación
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errors:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       msg:
- *                         type: string
- *                       param:
- *                         type: string
+ *         description: Validation error
  *       500:
- *         description: Error interno del servidor
+ *         description: Internal server error
  */
-router.post('/recuperar-contrasena', passwordResetValidations, solicitarRecuperacionContrasena);
+
+router.post('/password-reset', passwordResetValidations, solicitarRecuperacionContrasena);
 
 /**
  * @swagger
- * /api/auth/resetear-contrasena:
+ * /api/auth/password-reset/confirm:
  *   post:
- *     summary: Restablecer contraseña con token
- *     tags: [Auth]
+ *     summary: Confirm password reset
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -261,7 +299,7 @@ router.post('/recuperar-contrasena', passwordResetValidations, solicitarRecupera
  *             $ref: '#/components/schemas/PasswordReset'
  *     responses:
  *       200:
- *         description: Contraseña actualizada exitosamente
+ *         description: Password updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -269,22 +307,12 @@ router.post('/recuperar-contrasena', passwordResetValidations, solicitarRecupera
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Contraseña actualizada exitosamente"
+ *                   example: "Password updated successfully"
  *       400:
- *         description: Token inválido o error de validación
- *         content:
- *           application/json:
- *             schema:
- *               oneOf:
- *                 - $ref: '#/components/schemas/ErrorValidation'
- *                 - type: object
- *                   properties:
- *                     error:
- *                       type: string
- *                       example: "Token inválido o expirado"
+ *         description: Invalid token or validation error
  *       500:
- *         description: Error interno del servidor
+ *         description: Internal server error
  */
-router.post('/resetear-contrasena', newPasswordValidations, resetearContrasena);
+router.post('/password-reset/confirm', newPasswordValidations, resetearContrasena);
 
 module.exports = router;

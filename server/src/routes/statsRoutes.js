@@ -1,52 +1,84 @@
-// server/src/routes/statsRoutes.js
 const express = require('express');
 const router = express.Router();
-const { getStats } = require('../controllers/statsController');
+const { getTrainerStats } = require('../controllers/statsController');
 const authenticate = require('../middlewares/authMiddleware');
+const checkRole = require('../middlewares/roleMiddleware');
 
-router.use(authenticate);
-
-router.get('/entrenadores/estadisticas', getStats);
+// Cambiamos el endpoint a /api/stats/trainers/{id}/metrics
+router.get('/trainers/:id/metrics', authenticate, checkRole([3]), getTrainerStats);
 
 /**
  * @swagger
- * /api/stats/entrenadores/estadisticas:
+ * tags:
+ *   - name: Statistics
+ *     description: System statistics and metrics
+ */
+
+/**
+ * @swagger
+ * /api/stats/trainers/{id}/metrics:
  *   get:
- *     summary: Obtener estadísticas del entrenador
- *     tags: [Estadísticas]
+ *     summary: Get trainer performance metrics
+ *     description: Returns detailed statistics and metrics for a specific trainer
+ *     tags: [Statistics]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Trainer ID
  *     responses:
  *       200:
- *         description: Estadísticas del entrenador
+ *         description: Trainer metrics data
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 total_visualizaciones:
+ *                 totalViews:
  *                   type: integer
- *                 tasa_conversion:
+ *                   example: 150
+ *                 conversionRate:
  *                   type: number
- *                 promedio_calificaciones:
+ *                   format: float
+ *                   example: 12.5
+ *                 averageRating:
  *                   type: number
- *                 total_calificaciones:
+ *                   format: float
+ *                   example: 4.5
+ *                 totalReviews:
  *                   type: integer
- *                 distribucion_calificaciones:
+ *                   example: 20
+ *                 ratingDistribution:
  *                   type: array
- *                   items: { type: integer }
- *                 servicios_populares:
+ *                   items: 
+ *                     type: integer
+ *                   example: [1, 2, 3, 10, 4]
+ *                 popularServices:
  *                   type: array
  *                   items:
  *                     type: object
  *                     properties:
- *                       id_servicio:
+ *                       serviceId:
  *                         type: integer
- *                       descripcion:
+ *                         example: 123
+ *                       description:
  *                         type: string
- *                       total_contrataciones:
+ *                         example: "Personal Training"
+ *                       totalHires:
  *                         type: integer
- *                       visualizaciones:
+ *                         example: 15
+ *                       views:
  *                         type: integer
+ *                         example: 75
+ *       403:
+ *         description: Forbidden (not a trainer or not authorized)
+ *       404:
+ *         description: Trainer not found
+ *       500:
+ *         description: Server error
  */
 module.exports = router;

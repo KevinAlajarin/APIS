@@ -2,7 +2,7 @@
 const { getConnection, sql } = require('../config/db');
 
 class Contratacion {
-static async create(id_cliente, id_servicio) {
+static async createHire(id_cliente, id_servicio) {
     const pool = await getConnection();
     const transaction = new sql.Transaction(pool);
     
@@ -58,7 +58,7 @@ static async create(id_cliente, id_servicio) {
     }
   }
 
-  static async getByUser(id_usuario) {
+  static async getHiresByUser(id_usuario) {
     const pool = await getConnection();
     try {
       const result = await pool.request()
@@ -93,7 +93,7 @@ static async create(id_cliente, id_servicio) {
     }
   }
 
-  static async getById(id_contratacion) {
+  static async getHiredById(id_contratacion) {
     const pool = await getConnection();
     try {
       const result = await pool.request()
@@ -118,7 +118,7 @@ static async create(id_cliente, id_servicio) {
     }
   }
 
-  static async updateEstado(id_contratacion, nuevoEstado, id_usuario) {
+  static async updateHireStatus(id_contratacion, nuevoEstado, id_usuario) {
     const pool = await getConnection();
     try {
       // Verificar permisos (solo cliente o entrenador relacionado)

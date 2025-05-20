@@ -2,7 +2,7 @@
 const { getConnection, sql } = require('../config/db');
 
 class Resenia {
-  static async create(id_contratacion, id_cliente, puntuacion, comentario) {
+  static async createReview(id_contratacion, id_cliente, puntuacion, comentario) {
     const pool = await getConnection();
     try {
       // Verificar que la contratación existe y está completada
@@ -53,7 +53,7 @@ class Resenia {
     }
   }
 
-  static async getByEntrenador(id_entrenador) {
+  static async getTrainerReviews(id_entrenador) {
     const pool = await getConnection();
     try {
       const result = await pool.request()
@@ -86,7 +86,7 @@ class Resenia {
     }
   }
 
-  static async getByCliente(id_cliente) {
+  static async getClientReviews(id_cliente) {
     const pool = await getConnection();
     try {
       const result = await pool.request()
@@ -118,7 +118,7 @@ class Resenia {
   }
   
   // Nuevo método para eliminar reseñas
-  static async delete(id_resenia, id_usuario, esAdmin = false) {
+  static async deleteReview(id_resenia, id_usuario, esAdmin = false) {
     const pool = await getConnection();
     try {
       // Verificar permisos
@@ -149,7 +149,7 @@ class Resenia {
     }
   }
 
-  static async addRespuesta(id_resenia, id_entrenador, texto) {
+  static async addReviewResponse(id_resenia, id_entrenador, texto) {
     const pool = await getConnection();
     try {
       // Verificación mejorada

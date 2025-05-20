@@ -2,7 +2,7 @@
 const { getConnection, sql } = require('../config/db');
 
 class Stats {
-  static async getByEntrenador(id_entrenador) {
+  static async getByTrainer(id_entrenador) {
     const pool = await getConnection();
     try {
       const result = await pool.request()
@@ -53,7 +53,7 @@ class Stats {
     }
   }
 
-  static async getServiciosPopulares(id_entrenador, limit = 3) {
+  static async getPopularServices(id_entrenador, limit = 3) {
     const pool = await getConnection();
     try {
       const result = await pool.request()

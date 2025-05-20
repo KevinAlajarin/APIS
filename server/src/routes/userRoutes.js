@@ -8,66 +8,83 @@ const checkRole = require('../middlewares/roleMiddleware');
 
 /**
  * @swagger
+ * tags:
+ *   - name: Users
+ *     description: User management
+ */
+
+/**
+ * @swagger
  * components:
  *   schemas:
  *     User:
  *       type: object
  *       properties:
- *         id_usuario:
+ *         id:
  *           type: integer
  *           example: 1
- *         id_rol:
+ *         roleId:
  *           type: integer
  *           example: 2
- *         nombre:
+ *         firstName:
  *           type: string
- *           example: "Juan"
- *         apellido:
+ *           example: "John"
+ *         lastName:
  *           type: string
- *           example: "Pérez"
+ *           example: "Doe"
  *         email:
  *           type: string
  *           format: email
- *           example: "juan@example.com"
- *         fecha_nacimiento:
+ *           example: "john@example.com"
+ *         birthDate:
  *           type: string
  *           format: date
  *           example: "1990-01-01"
- *         fecha_registro:
+ *         registrationDate:
  *           type: string
  *           format: date-time
  *           example: "2023-08-15T10:30:00Z"
+ *     
+ *     PasswordChange:
+ *       type: object
+ *       required:
+ *         - currentPassword
+ *         - newPassword
+ *       properties:
+ *         currentPassword:
+ *           type: string
+ *           example: "OldPass123!"
+ *         newPassword:
+ *           type: string
+ *           description: Minimum 8 chars, 1 uppercase, 1 number and 1 special char
+ *           example: "NewPass456!"
  */
 
-/**
- * @swagger
- * tags:
- *   - name: Users
- *     description: Gestión de usuarios
- */
 
 /**
  * @swagger
  * /api/users:
  *   get:
- *     summary: Obtener todos los usuarios
+ *     summary: Get all users
  *     tags: [Users]
  *     responses:
  *       200:
- *         description: Lista de usuarios
+ *         description: List of users
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/User'
+ *       500:
+ *         description: Server error
  */
 
 /**
  * @swagger
  * /api/users/{id}:
  *   get:
- *     summary: Obtener un usuario por ID
+ *     summary: Get user by ID
  *     tags: [Users]
  *     parameters:
  *       - in: path
@@ -77,20 +94,22 @@ const checkRole = require('../middlewares/roleMiddleware');
  *           type: integer
  *     responses:
  *       200:
- *         description: Detalles del usuario
+ *         description: User details
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
  *       404:
- *         description: Usuario no encontrado
+ *         description: User not found
+ *       500:
+ *         description: Server error
  */
 
 /**
  * @swagger
  * /api/users/{id}:
  *   put:
- *     summary: Actualizar usuario (propio o por admin)
+ *     summary: Fully update user (admin or own user)
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -101,33 +120,27 @@ const checkRole = require('../middlewares/roleMiddleware');
  *         schema:
  *           type: integer
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               nombre:
- *                 type: string
- *                 example: "Nuevo nombre"
- *               apellido:
- *                 type: string
- *                 example: "Nuevo apellido"
- *               fecha_nacimiento:
- *                 type: string
- *                 format: date
- *                 example: "1990-01-01"
+ *             $ref: '#/components/schemas/User'
  *     responses:
  *       200:
- *         description: Usuario actualizado
+ *         description: User updated
+ *       400:
+ *         description: Validation error
  *       403:
- *         description: No autorizado
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
  */
 
 /**
  * @swagger
  * /api/users/{id}:
  *   delete:
- *     summary: Eliminar usuario
+ *     summary: Delete user (soft delete)
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -139,16 +152,19 @@ const checkRole = require('../middlewares/roleMiddleware');
  *           type: integer
  *     responses:
  *       200:
- *         description: Usuario eliminado (soft delete)
+ *         description: User deleted
  *       403:
- *         description: No autorizado
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
  */
+
 
 /**
  * @swagger
  * /api/users/change-password:
  *   post:
- *     summary: Cambiar contraseña
+ *     summary: Change user password
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -157,19 +173,16 @@ const checkRole = require('../middlewares/roleMiddleware');
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               currentPassword:
- *                 type: string
- *                 example: "Pass123!"
- *               newPassword:
- *                 type: string
- *                 example: "NewPass456!"
+ *             $ref: '#/components/schemas/PasswordChange'
  *     responses:
  *       200:
- *         description: Contraseña cambiada
+ *         description: Password changed successfully
  *       400:
- *         description: Contraseña actual incorrecta
+ *         description: Current password incorrect or validation error
+ *       403:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
  */
 
 

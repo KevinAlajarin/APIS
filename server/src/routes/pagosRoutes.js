@@ -1,36 +1,43 @@
 const express = require('express');
 const router = express.Router();
-const pagosController = require('../controllers/pagosController');
-const autenticar = require('../middlewares/authMiddleware');
+const paymentsController = require('../controllers/pagosController');
+const authenticate = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
  * tags:
- *   name: Pagos
- *   description: Gestión de pagos con MercadoPago
+ *   name: Payments
+ *   description: Payment processing with MercadoPago
  */
 
 /**
  * @swagger
  * components:
  *   schemas:
- *     PreferenciaPago:
+ *     PaymentPreference:
  *       type: object
  *       properties:
- *         id_preferencia:
+ *         preference_id:
  *           type: string
  *           example: "1315617318-9b8a1a1a-..."
- *         url_pago:
+ *         payment_url:
  *           type: string
  *           example: "https://www.mercadopago.com.ar/checkout/v1/redirect..."
+ *         hire_id:
+ *           type: integer
+ *           example: 1
  */
+
+// Endpoints actualizados
+router.post('/preferences', authenticate, paymentsController.createPaymentPreference);
+router.post('/webhook', paymentsController.handlePaymentWebhook);
 
 /**
  * @swagger
- * /api/pagos/crear-preferencia:
+ * /api/payments/preferences:
  *   post:
- *     summary: Crea una preferencia de pago en MercadoPago
- *     tags: [Pagos]
+ *     summary: Create MercadoPago payment preference
+ *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -40,31 +47,40 @@ const autenticar = require('../middlewares/authMiddleware');
  *           schema:
  *             type: object
  *             required:
- *               - id_contratacion
+ *               - hire_id
  *             properties:
- *               id_contratacion:
+ *               hire_id:
  *                 type: integer
  *                 example: 1
+ *                 description: "ID of the hire to pay"
  *     responses:
  *       200:
- *         description: Preferencia creada exitosamente
+ *         description: Payment preference created
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/PreferenciaPago'
+ *               $ref: '#/components/schemas/PaymentPreference'
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Hire not found
+ *       500:
+ *         description: Error creating payment preference
  */
-router.post('/crear-preferencia', autenticar, pagosController.crearPreferenciaPago);
 
 /**
  * @swagger
- * /api/pagos/webhook:
+ * /api/payments/webhook:
  *   post:
- *     summary: Webhook para notificaciones de MercadoPago
- *     tags: [Pagos]
+ *     summary: MercadoPago payment notification webhook
+ *     description: Endpoint for MercadoPago payment notifications (do not call directly)
+ *     tags: [Payments]
  *     responses:
  *       200:
- *         description: Webhook procesado
+ *         description: Webhook processed
+ *       400:
+ *         description: Invalid webhook data
+ *       403:
+ *         description: Unauthorized webhook call
  */
-router.post('/webhook', pagosController.manejarWebhook);
-
 module.exports = router;

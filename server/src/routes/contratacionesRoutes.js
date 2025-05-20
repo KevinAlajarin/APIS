@@ -1,69 +1,72 @@
-// server/src/routes/contratacionesRoutes.js
 const express = require('express');
 const router = express.Router();
 const { check } = require('express-validator');
 const {
-  crearContratacion,
-  listarContrataciones,
-  obtenerContratacion,
-  cambiarEstado
+  createHire,
+  getUserHires,
+  getHireDetails,
+  updateHireStatus,
+  completeHire
 } = require('../controllers/contratacionesController');
 const authenticate = require('../middlewares/authMiddleware');
-const debugMiddleware = require('../middlewares/debugMiddleware');
-router.post('/', authenticate, crearContratacion);
 
-router.use(authenticate);
+// Validaciones
+const createValidations = [
+  check('service_id').isInt().withMessage('Debe ser un ID de servicio válido').toInt()
+];
+
+const statusValidations = [
+  check('status')
+    .isIn(['accepted', 'cancelled', 'completed'])
+    .withMessage('Estado inválido. Valores permitidos: accepted, cancelled, completed')
+];
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Hires
+ *     description: Service hiring management
+ */
 
 /**
  * @swagger
  * components:
  *   schemas:
- *     Contratacion:
+ *     Hire:
  *       type: object
  *       properties:
- *         id_contratacion:
+ *         id:
  *           type: integer
- *         estado:
+ *         status:
  *           type: string
- *           enum: [pendiente, aceptado, cancelado, completado]
- *         fecha_solicitud:
+ *           enum: [pending, accepted, cancelled, completed]
+ *         request_date:
  *           type: string
  *           format: date-time
- *         id_servicio:
+ *         service_id:
  *           type: integer
- *         servicio_descripcion:
+ *         service_description:
  *           type: string
- *         precio:
+ *         price:
  *           type: number
  *           format: float
- * 
- *     ErrorResponse:
- *       type: object
- *       properties:
- *         error:
+ *         trainer_name:
  *           type: string
- *           example: "Mensaje de error descriptivo"
  */
 
-// Validaciones
-const crearValidations = [
-  check('id_servicio')
-    .isInt().withMessage('Debe ser un ID de servicio válido')
-    .toInt()
-];
-
-const estadoValidations = [
-  check('nuevoEstado')
-    .isIn(['aceptado', 'cancelado', 'completado'])
-    .withMessage('Estado inválido. Valores permitidos: aceptado, cancelado, completado')
-];
+// Endpoints actualizados
+router.post('/', authenticate, createValidations, createHire);
+router.get('/', authenticate, getUserHires);
+router.get('/:id', authenticate, getHireDetails);
+router.patch('/:id/status', authenticate, statusValidations, updateHireStatus);
+router.patch('/:id/complete', authenticate, completeHire);
 
 /**
  * @swagger
- * /api/contrataciones:
+ * /api/hires:
  *   post:
- *     summary: Crear nueva contratación (solo clientes)
- *     tags: [Contrataciones]
+ *     summary: Create new hire (clients only)
+ *     tags: [Hires]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -73,78 +76,51 @@ const estadoValidations = [
  *           schema:
  *             type: object
  *             required:
- *               - id_servicio
+ *               - service_id
  *             properties:
- *               id_servicio:
+ *               service_id:
  *                 type: integer
  *                 example: 5
  *     responses:
  *       201:
- *         description: Contratación creada exitosamente
+ *         description: Hire created successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Contratacion'
+ *               $ref: '#/components/schemas/Hire'
  *       400:
- *         description: Error en la solicitud
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *             examples:
- *               servicio_no_disponible:
- *                 value:
- *                   error: "El servicio no está disponible para contratación"
- *               autocontratacion:
- *                 value:
- *                   error: "No puedes contratar tu propio servicio"
- *               validacion:
- *                 value:
- *                   error: "Debe ser un ID de servicio válido"
+ *         description: Bad request
  *       403:
- *         description: No autorizado
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *             example:
- *               error: "Solo clientes pueden contratar servicios"
+ *         description: Forbidden (not a client or unauthorized)
  */
-
-router.post('/', crearValidations, crearContratacion);
 
 /**
  * @swagger
- * /api/contrataciones:
+ * /api/hires:
  *   get:
- *     summary: Listar contrataciones del usuario autenticado
- *     tags: [Contrataciones]
+ *     summary: Get hires for authenticated user
+ *     tags: [Hires]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Lista de contrataciones
+ *         description: List of hires
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Contratacion'
+ *                 $ref: '#/components/schemas/Hire'
  *       500:
- *         description: Error del servidor
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *         description: Server error
  */
-router.get('/', listarContrataciones);
 
 /**
  * @swagger
- * /api/contrataciones/{id}:
+ * /api/hires/{id}:
  *   get:
- *     summary: Obtener detalles de una contratación específica
- *     tags: [Contrataciones]
+ *     summary: Get hire details
+ *     tags: [Hires]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -155,26 +131,23 @@ router.get('/', listarContrataciones);
  *           type: integer
  *     responses:
  *       200:
- *         description: Detalles de la contratación
+ *         description: Hire details
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Contratacion'
+ *               $ref: '#/components/schemas/Hire'
  *       403:
- *         description: No autorizado para ver esta contratación
+ *         description: Forbidden
  *       404:
- *         description: Contratación no encontrada
- *       500:
- *         description: Error del servidor
+ *         description: Hire not found
  */
-router.get('/:id', obtenerContratacion);
 
 /**
  * @swagger
- * /api/contrataciones/{id}/estado:
+ * /api/hires/{id}/status:
  *   patch:
- *     summary: Cambiar estado de una contratación
- *     tags: [Contrataciones]
+ *     summary: Update hire status
+ *     tags: [Hires]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -190,41 +163,38 @@ router.get('/:id', obtenerContratacion);
  *           schema:
  *             type: object
  *             required:
- *               - nuevoEstado
+ *               - status
  *             properties:
- *               nuevoEstado:
+ *               status:
  *                 type: string
- *                 enum: [aceptado, cancelado, completado]
- *                 example: "aceptado"
+ *                 enum: [accepted, cancelled, completed]
  *     responses:
  *       200:
- *         description: Estado actualizado correctamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
+ *         description: Status updated
  *       400:
- *         description: Error en la solicitud
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *             examples:
- *               estado_invalido:
- *                 value:
- *                   error: "Transición de estado no permitida: pendiente -> completado"
- *               validacion:
- *                 value:
- *                   error: "Estado inválido. Valores permitidos: aceptado, cancelado, completado"
+ *         description: Invalid status transition
  *       403:
- *         description: No autorizado para esta acción
- *       500:
- *         description: Error del servidor
+ *         description: Forbidden
  */
-router.patch('/:id/estado', estadoValidations, cambiarEstado);
 
+/**
+ * @swagger
+ * /api/hires/{id}/complete:
+ *   patch:
+ *     summary: Mark hire as completed (trainers only)
+ *     tags: [Hires]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Hire completed
+ *       403:
+ *         description: Forbidden (not the trainer)
+ */
 module.exports = router;

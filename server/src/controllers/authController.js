@@ -10,11 +10,16 @@ const { sendPasswordResetEmail } = require('../utils/emailService');
 
 const register = async (req, res) => {
   try {
-    const { id_rol, nombre, apellido, email, contraseña, fecha_nacimiento } = req.body;
+    const { id_rol, nombre, apellido, email, contraseña, repetir_contraseña, fecha_nacimiento } = req.body;
 
     // Validaciones básicas
-    if (!id_rol || !nombre || !email || !contraseña) {
+    if (!id_rol || !nombre || !email || !contraseña || !repetir_contraseña) {
       return res.status(400).json({ error: 'Faltan campos obligatorios' });
+    }
+
+    // Validar que las contraseñas coincidan
+    if (contraseña !== repetir_contraseña) {
+      return res.status(400).json({ error: 'Las contraseñas no coinciden' });
     }
 
     // Validar contraseña
@@ -136,7 +141,12 @@ const solicitarRecuperacionContrasena = async (req, res) => {
 
 const resetearContrasena = async (req, res) => {
   try {
-    const { token, nuevaContrasena } = req.body;
+    const { token, nuevaContrasena, repetirNuevaContrasena } = req.body;
+
+    // Validar que las contraseñas coincidan
+    if (nuevaContrasena !== repetirNuevaContrasena) {
+      return res.status(400).json({ error: 'Las contraseñas no coinciden' });
+    }
 
     // Validar contraseña
     const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;

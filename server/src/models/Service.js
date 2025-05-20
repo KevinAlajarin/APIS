@@ -139,26 +139,49 @@ class Service {
             AND c.estado IN ('pendiente','aceptado')
             )`
       ]; 
-      let joinClauses = [];
-
+      let joinClauses = ['JOIN categorias c ON s.id_categoria = c.id_categoria', 
+                        'JOIN zonas z ON s.id_zona = z.id_zona'];
+  
       // Construcción dinámica de la query
       if (filters.categoria) {
         request.input('categoria', sql.VarChar(50), `%${filters.categoria}%`);
         whereClauses.push('c.nombre LIKE @categoria');
-        joinClauses.push('JOIN categorias c ON s.id_categoria = c.id_categoria');
       }
-
+  
       if (filters.zona) {
         request.input('zona', sql.VarChar(50), `%${filters.zona}%`);
         whereClauses.push('z.nombre LIKE @zona');
-        joinClauses.push('JOIN zonas z ON s.id_zona = z.id_zona');
       }
-
+  
       if (filters.precioMax) {
         request.input('precioMax', sql.Decimal(10, 2), filters.precioMax);
         whereClauses.push('s.precio <= @precioMax');
       }
-
+  
+      if (filters.idioma) {
+        request.input('idioma', sql.VarChar(20), filters.idioma);
+        whereClauses.push('s.idioma = @idioma');
+      }
+  
+      if (filters.duracion) {
+        request.input('duracion', sql.Int, filters.duracion);
+        whereClauses.push('s.duracion = @duracion');
+      }
+  
+      if (filters.calificacion_minima) {
+        request.input('calificacion_minima', sql.Decimal(3,1), filters.calificacion_minima);
+        joinClauses.push(`
+          LEFT JOIN (
+            SELECT id_servicio, AVG(CAST(puntuacion AS DECIMAL(3,1))) as promedio_calificacion
+            FROM contrataciones co
+            JOIN resenias r ON co.id_contratacion = r.id_contratacion
+            WHERE r.estado = 'aprobado'
+            GROUP BY id_servicio
+          ) cal ON s.id_servicio = cal.id_servicio
+        `);
+        whereClauses.push('(cal.promedio_calificacion >= @calificacion_minima OR cal.promedio_calificacion IS NULL)');
+      }
+  
       const query = `
         SELECT 
           s.id_servicio,
@@ -169,14 +192,15 @@ class Service {
           s.idioma,
           c.nombre AS categoria,
           z.nombre AS zona,
-          u.nombre + ' ' + u.apellido AS entrenador
+          u.nombre + ' ' + u.apellido AS entrenador,
+          ISNULL(cal.promedio_calificacion, 0) AS promedio_calificacion
         FROM servicios s
         ${joinClauses.join(' ')}
         JOIN usuarios u ON s.id_entrenador = u.id_usuario
         WHERE ${whereClauses.join(' AND ')}
         ORDER BY s.fecha_creacion DESC
       `;
-
+  
       const result = await request.query(query);
       return result.recordset;
     } catch (error) {

@@ -81,10 +81,28 @@ const searchServices = async (req, res) => {
   }
 };
 
+const partialUpdateService = async (req, res) => {
+  try {
+    // Verificar propiedad del servicio
+    const service = await Service.getById(req.params.id);
+    if (!service || service.id_entrenador !== req.user.id_usuario) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    // Actualización parcial
+    await Service.update(req.params.id, req.body);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error in partialUpdateService:', error.message);
+    res.status(500).json({ error: 'Error updating service' });
+  }
+};
+
 module.exports = {
   createService,
   getService,
   updateService,
   deleteService,
-  searchServices
+  searchServices,
+  partialUpdateService
 };

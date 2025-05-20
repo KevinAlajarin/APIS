@@ -1,131 +1,111 @@
-// server/src/routes/chatRoutes.js
 const express = require('express');
 const router = express.Router();
-const { getChat, sendMessage, uploadFile, getFiles } = require('../controllers/chatController');
+const { 
+  getChatMessages, 
+  sendChatMessage,
+  uploadChatFile, 
+  getChatFiles 
+} = require('../controllers/chatController');
 const authenticate = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/multerMiddleware');
 
 // Middleware de autenticación aplicado a todas las rutas
 router.use(authenticate);
 
-// Obtener historial de chat
-router.get('/contrataciones/:id_contratacion/chat', getChat);
-
-// Enviar mensaje
-router.post('/contrataciones/:id_contratacion/chat', sendMessage);
-
-// Subir archivo
-router.post('/contrataciones/:id_contratacion/archivos', 
-  upload.single('archivo'), 
-  uploadFile
-);
-
-// Listar archivos
-router.get('/contrataciones/:id_contratacion/archivos', getFiles);
-
-// En chatRoutes.js
 /**
  * @swagger
  * tags:
  *   - name: Chat
- *     description: Sistema de mensajería y archivos para contrataciones
- *   - name: Archivos
- *     description: Gestión de archivos compartidos en contrataciones
+ *     description: Chat and file sharing system for hires
+ *   - name: Files
+ *     description: File management for hires
  */
 
 /**
  * @swagger
  * components:
  *   schemas:
- *     Mensaje:
+ *     Message:
  *       type: object
  *       properties:
- *         id_mensaje:
+ *         id:
  *           type: integer
- *         texto:
+ *         text:
  *           type: string
- *         fecha_hora:
+ *         date:
  *           type: string
  *           format: date-time
- *         id_usuario:
+ *         user_id:
  *           type: integer
- *         nombre_remitente:
+ *         user_name:
  *           type: string
- *         id_rol:
+ *         user_role:
  *           type: integer
- *     Archivo:
+ *     File:
  *       type: object
  *       properties:
- *         id_archivo:
+ *         id:
  *           type: integer
- *         nombre_archivo:
+ *         name:
  *           type: string
- *         tipo_archivo:
+ *         type:
  *           type: string
- *         fecha_subida:
+ *         upload_date:
  *           type: string
  *           format: date-time
- *         subido_por:
+ *         uploaded_by:
  *           type: string
  *         url:
  *           type: string
- *     Error:
- *       type: object
- *       properties:
- *         error:
- *           type: string
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
  */
+
+// Endpoints actualizados
+router.get('/hires/:id/messages', getChatMessages);
+router.post('/hires/:id/messages', sendChatMessage);
+router.post('/hires/:id/files', upload.single('file'), uploadChatFile);
+router.get('/hires/:id/files', getChatFiles);
 
 /**
  * @swagger
- * /api/contrataciones/{id_contratacion}/chat:
+ * /api/hires/{id}/messages:
  *   get:
- *     summary: Obtener historial de chat de una contratación
+ *     summary: Get chat messages for a hire
  *     tags: [Chat]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id_contratacion
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID de la contratación
+ *         description: Hire ID
  *     responses:
  *       200:
- *         description: Listado de mensajes
+ *         description: List of messages
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Mensaje'
+ *                 $ref: '#/components/schemas/Message'
  *       403:
- *         description: No autorizado
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *         description: Unauthorized access
  *       500:
- *         description: Error del servidor
+ *         description: Server error
  */
 
 /**
  * @swagger
- * /api/contrataciones/{id_contratacion}/chat:
+ * /api/hires/{id}/messages:
  *   post:
- *     summary: Enviar mensaje en una contratación
+ *     summary: Send a chat message
  *     tags: [Chat]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id_contratacion
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
@@ -136,13 +116,14 @@ router.get('/contrataciones/:id_contratacion/archivos', getFiles);
  *           schema:
  *             type: object
  *             required:
- *               - texto
+ *               - text
  *             properties:
- *               texto:
+ *               text:
  *                 type: string
+ *                 example: "Hello, how are you?"
  *     responses:
  *       201:
- *         description: Mensaje enviado correctamente
+ *         description: Message sent successfully
  *         content:
  *           application/json:
  *             schema:
@@ -150,27 +131,25 @@ router.get('/contrataciones/:id_contratacion/archivos', getFiles);
  *               properties:
  *                 success:
  *                   type: boolean
- *                 id_mensaje:
+ *                 id:
  *                   type: integer
  *       400:
- *         description: Mensaje vacío
+ *         description: Empty message
  *       403:
- *         description: No autorizado
- *       500:
- *         description: Error del servidor
+ *         description: Unauthorized
  */
 
 /**
  * @swagger
- * /api/contrataciones/{id_contratacion}/archivos:
+ * /api/hires/{id}/files:
  *   post:
- *     summary: Subir archivo a una contratación
- *     tags: [Archivos]
+ *     summary: Upload a file to hire
+ *     tags: [Files]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id_contratacion
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
@@ -180,75 +159,28 @@ router.get('/contrataciones/:id_contratacion/archivos', getFiles);
  *           schema:
  *             type: object
  *             properties:
- *               archivo:
+ *               file:
  *                 type: string
  *                 format: binary
  *     responses:
  *       201:
- *         description: Archivo subido exitosamente
+ *         description: File uploaded successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Archivo'
+ *               $ref: '#/components/schemas/File'
  *       400:
- *         description: No se subió archivo o tipo no permitido
+ *         description: No file uploaded
  *       403:
- *         description: No autorizado
- *       500:
- *         description: Error al subir archivo
+ *         description: Unauthorized
  */
 
 /**
  * @swagger
- * /api/contrataciones/{id_contratacion}/archivos:
+ * /api/hires/{id}/files:
  *   get:
- *     summary: Listar archivos de una contratación
- *     tags: [Archivos]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id_contratacion
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Listado de archivos
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id_archivo:
- *                     type: integer
- *                   nombre_archivo:
- *                     type: string
- *                   tipo_archivo:
- *                     type: string
- *                   fecha_subida:
- *                     type: string
- *                     format: date-time
- *                   subido_por:
- *                     type: string
- *                   url:
- *                     type: string
- *                     description: URL para descargar el archivo
- *       403:
- *         description: No autorizado
- *       404:
- *         description: Contratación no encontrada
- */
-
-// En contratacionesRoutes.js
-/**
- * @swagger
- * /api/contrataciones/{id}/completar:
- *   patch:
- *     summary: Marcar servicio como completado (solo entrenador)
- *     tags: [Contrataciones]
+ *     summary: Get files for a hire
+ *     tags: [Files]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -259,20 +191,17 @@ router.get('/contrataciones/:id_contratacion/archivos', getFiles);
  *           type: integer
  *     responses:
  *       200:
- *         description: Servicio completado exitosamente
+ *         description: List of files
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/File'
  *       403:
- *         description: No autorizado
- *       500:
- *         description: Error al completar servicio
+ *         description: Unauthorized
+ *       404:
+ *         description: Hire not found
  */
 
 module.exports = router;

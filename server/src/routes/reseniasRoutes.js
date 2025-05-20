@@ -1,82 +1,80 @@
-// server/src/routes/reseniasRoutes.js
 const express = require('express');
 const router = express.Router();
 const { check } = require('express-validator');
 const {
-  crearResenia,
-  getReseniasEntrenador,
-  getReseniasCliente,
-  eliminarResenia,
-  responderResenia
+  createReview,
+  getTrainerReviews,
+  getClientReviews,
+  deleteReview,
+  addReviewResponse
 } = require('../controllers/reseniasController');
 const authenticate = require('../middlewares/authMiddleware');
+const checkRole = require('../middlewares/roleMiddleware');
 
 // Validaciones
-const reseniaValidations = [
-  check('id_contratacion').isInt().withMessage('ID de contratación inválido'),
-  check('puntuacion').isInt({ min: 1, max: 5 }).withMessage('Puntuación debe ser entre 1 y 5'),
-  check('comentario').isLength({ min: 10 }).withMessage('Comentario muy corto (mín. 10 caracteres)')
+const reviewValidations = [
+  check('hire_id').isInt().withMessage('ID de contratación inválido'),
+  check('rating').isInt({ min: 1, max: 5 }).withMessage('Puntuación debe ser entre 1 y 5'),
+  check('comment').isLength({ min: 10 }).withMessage('Comentario muy corto (mín. 10 caracteres)')
 ];
 
-const respuestaValidations = [
-  check('texto').isLength({ min: 5 }).withMessage('Respuesta muy corta (mín. 5 caracteres)')
+const responseValidations = [
+  check('text').isLength({ min: 5 }).withMessage('Respuesta muy corta (mín. 5 caracteres)')
 ];
-
-// Rutas públicas
-router.get('/entrenadores/:id/resenias', getReseniasEntrenador);
-router.get('/clientes/:id/resenias', getReseniasCliente);  
-
-// Rutas protegidas
-router.use(authenticate);
-
-router.delete('/:id', eliminarResenia);
-
-router.post('/', reseniaValidations, crearResenia);
-router.post('/:id/respuestas', respuestaValidations, responderResenia);
 
 /**
  * @swagger
  * tags:
- *   - name: Reseñas
- *     description: Sistema de reseñas y respuestas
+ *   - name: Reviews
+ *     description: Service review system
  */
 
 /**
  * @swagger
  * components:
  *   schemas:
- *     Reseña:
+ *     Review:
  *       type: object
  *       properties:
- *         id_resenia:
+ *         id:
  *           type: integer
- *         puntuacion:
+ *         rating:
  *           type: integer
  *           minimum: 1
  *           maximum: 5
- *         comentario:
+ *         comment:
  *           type: string
- *         cliente_nombre:
+ *         client_name:
  *           type: string
- *         fecha_creacion:
- *           type: string
- *           format: date-time
- *     Respuesta:
- *       type: object
- *       properties:
- *         texto:
- *           type: string
- *         fecha_creacion:
+ *         created_at:
  *           type: string
  *           format: date-time
+ *         response:
+ *           type: string
+ *         response_date:
+ *           type: string
+ *           format: date-time
+ *         trainer_response_name:
+ *           type: string
  */
+
+// Endpoints públicos
+router.get('/trainers/:id/reviews', getTrainerReviews);
+router.get('/clients/:id/reviews', getClientReviews);
+
+// Endpoints protegidos
+router.use(authenticate);
+
+router.post('/', reviewValidations, checkRole([2]), createReview);
+router.post('/:id/responses', responseValidations, checkRole([3]), addReviewResponse);
+router.delete('/:id', deleteReview);
 
 /**
  * @swagger
- * /api/resenias:
+ * /api/reviews:
  *   post:
- *     summary: Crear reseña (solo clientes con contratación completada)
- *     tags: [Reseñas]
+ *     summary: Create a review (completed hires only)
+ *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -86,37 +84,94 @@ router.post('/:id/respuestas', respuestaValidations, responderResenia);
  *           schema:
  *             type: object
  *             required:
- *               - id_contratacion
- *               - puntuacion
- *               - comentario
+ *               - hire_id
+ *               - rating
+ *               - comment
  *             properties:
- *               id_contratacion:
+ *               hire_id:
  *                 type: integer
- *               puntuacion:
+ *                 example: 1
+ *               rating:
  *                 type: integer
  *                 minimum: 1
  *                 maximum: 5
- *               comentario:
+ *                 example: 5
+ *               comment:
  *                 type: string
+ *                 example: "Excelente servicio"
  *     responses:
  *       201:
- *         description: Reseña creada
+ *         description: Review created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   example: 1
  *       400:
- *         description: |
- *           Posibles errores:
- *           - Contratación no encontrada
- *           - Servicio no completado
- *           - Ya existe una reseña
+ *         description: Validation error or business rule violation
  *       403:
- *         description: No autorizado (solo clientes)
+ *         description: Forbidden (clients only)
  */
 
 /**
  * @swagger
- * /api/resenias/{id}/respuestas:
+ * /api/reviews/trainers/{id}/reviews:
+ *   get:
+ *     summary: Get reviews for a trainer
+ *     tags: [Reviews]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of reviews
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Review'
+ *       500:
+ *         description: Server error
+ */
+
+/**
+ * @swagger
+ * /api/reviews/clients/{id}/reviews:
+ *   get:
+ *     summary: Get reviews by a client
+ *     tags: [Reviews]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of client reviews
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Review'
+ *       404:
+ *         description: Client not found
+ */
+
+/**
+ * @swagger
+ * /api/reviews/{id}/responses:
  *   post:
- *     summary: Responder reseña (solo entrenador dueño del servicio)
- *     tags: [Reseñas]
+ *     summary: Add response to a review (service trainer only)
+ *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -132,72 +187,24 @@ router.post('/:id/respuestas', respuestaValidations, responderResenia);
  *           schema:
  *             type: object
  *             required:
- *               - texto
+ *               - text
  *             properties:
- *               texto:
+ *               text:
  *                 type: string
+ *                 example: "Gracias por tu feedback"
  *     responses:
  *       200:
- *         description: Respuesta agregada
+ *         description: Response added
  *       403:
- *         description: No autorizado (solo entrenador dueño)
+ *         description: Forbidden (not the trainer)
  */
 
 /**
  * @swagger
- * /api/resenias/entrenadores/{id}/resenias:
- *   get:
- *     summary: Obtener reseñas de un entrenador
- *     tags: [Reseñas]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Lista de reseñas
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Reseña'
- */
-
-/**
- * @swagger
- * /api/resenias/clientes/{id}/resenias:
- *   get:
- *     summary: Obtener reseñas de un cliente 
- *     tags: [Reseñas]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID del cliente
- *     responses:
- *       200:
- *         description: Lista de reseñas del cliente
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Reseña'
- *       404:
- *         description: Cliente no encontrado
- */
-
-/**
- * @swagger
- * /api/resenias/{id}:
+ * /api/reviews/{id}:
  *   delete:
- *     summary: Eliminar reseña (admin, cliente autor o entrenador dueño)
- *     tags: [Reseñas]
+ *     summary: Delete a review (admin, client author or service trainer)
+ *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -208,9 +215,11 @@ router.post('/:id/respuestas', respuestaValidations, responderResenia);
  *           type: integer
  *     responses:
  *       200:
- *         description: Reseña eliminada
+ *         description: Review deleted
  *       403:
- *         description: No autorizado
+ *         description: Forbidden
+ *       404:
+ *         description: Review not found
  */
 
 module.exports = router;
